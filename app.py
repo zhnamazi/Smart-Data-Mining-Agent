@@ -1,6 +1,8 @@
 import streamlit as st
 import os
 import agent_controller as agent_controller
+import concurrent.futures
+
 
 st.set_page_config(page_title="Smart Data Mining Agent", layout="wide")
 st.title("Smart Data Mining Agent with LangChain and Metis AI")
@@ -16,8 +18,8 @@ if "file_path" not in st.session_state:
 
 if uploaded_file is not None:
     # Save the uploaded file to a temporary location
-    os.makedirs("data", exist_ok=True)
-    file_path = os.path.join("data", uploaded_file.name)
+    os.makedirs("/tmp/data", exist_ok=True)
+    file_path = os.path.join("/tmp/data", uploaded_file.name)
     with open(file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
     st.session_state.file_path = file_path
@@ -50,9 +52,12 @@ if user_query := st.chat_input("Type your request here..."):
         with st.spinner("Processing your request..."):
             try:
                 # Invoke the agent with the user's query and get the response
-                response = st.session_state.executor.invoke({
-                    "input": user_query,
-                })
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(
+                            st.session_state.executor.invoke,
+                            {"input": user_query}
+                        )
+                    response = future.result(timeout=180)
                 output_text = response["output"]
                 st.markdown(output_text)
 
@@ -66,7 +71,9 @@ if user_query := st.chat_input("Type your request here..."):
                             file_name=os.path.basename(report_path),
                             mime="text/plain",
                         )
-
+            except concurrent.futures.TimeoutError:
+                output_text = "Request timed out after 3 minutes. Please try again."
+                st.error(output_text)
             except Exception as e:
                 output_text = f"Error occurred while processing the request: {str(e)}"
                 st.error(output_text)

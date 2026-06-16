@@ -130,9 +130,9 @@ def configure_and_extract_patterns(config: dict) -> str:
     return results
 
 def generate_report(target_col: str, tasks: list) -> str:
-    os.makedirs("outputs", exist_ok=True)
+    os.makedirs("/tmp/outputs", exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    report_path = f"outputs/report_{timestamp}.txt"
+    report_path = f"/tmp/outputs/report_{timestamp}.txt"
 
     lines = []
     sep = "=" * 60
@@ -475,8 +475,8 @@ def build_executor(file_path: str) -> AgentExecutor:
     return AgentExecutor(
         agent=agent,
         tools=tools,
-        verbose=True,
+        verbose=False,
         handle_parsing_errors=True,
-        max_iterations=10,
+        max_iterations=15,
         early_stopping_method="generate",
     )
